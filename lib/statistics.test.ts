@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { aggregate, gradeFor } from './statistics.ts';
+import { aggregate, selectGames, gradeFor } from './statistics.ts';
+test('patch selection isolates hotfixes and keeps unknown versions out of version ratings',()=>{
+  const base={key:'a',names:['测试强化'],placement:1,status:'assistant_reviewed',player:'甲',date:'2026-09-16',url:'',complete:true};
+  const games=[{...base,patch:'18.2'},{...base,key:'b',patch:'18.2b',placement:8},{...base,key:'c',patch:null,placement:4},{...base,key:'d',patch:'18.2b',placement:2,status:'auto_consistent'}];
+  const entry={id:'test',name:'测试强化',tier:2,icon:null,description:'',stages:null,stageSource:null,stageCheckedAt:null};
+  assert.equal(aggregate([entry],games,'all','18.2')[0].mean,1);
+  assert.equal(aggregate([entry],games,'all','18.2b')[0].mean,5);
+  assert.equal(aggregate([entry],games,'reviewed','18.2b')[0].mean,8);
+  assert.equal(aggregate([entry],games,'all','18.3')[0].n,0);
+  assert.deepEqual(selectGames(games,'all','unknown').map(g=>g.key),['c']);
+  assert.equal(selectGames(games,'all','all').length,4);
+});
 test('SABC boundaries preserve the agreed cutoffs',()=>{
   assert.deepEqual([3.49,3.5,3.99,4,4.49,4.5].map(gradeFor),['S','A','A','B','B','C']);
 });
